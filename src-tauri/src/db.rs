@@ -1310,7 +1310,10 @@ fn validate_settings(settings: &AppSettings) -> Result<(), String> {
     }
     validate_shortcut(&settings.global_shortcut)?;
     validate_shortcut(&settings.create_shortcut)?;
-    if settings.global_shortcut.eq_ignore_ascii_case(settings.create_shortcut.trim()) {
+    if settings
+        .global_shortcut
+        .eq_ignore_ascii_case(settings.create_shortcut.trim())
+    {
         return Err("新建待办和待办窗口快捷键不能相同".to_string());
     }
     validate_zentao_settings(settings)?;

@@ -529,7 +529,10 @@ fn apply_global_shortcut(
 
     let mut newly: Vec<String> = Vec::new();
     for key in &next_keys {
-        if previous_keys.iter().any(|item| item.eq_ignore_ascii_case(key)) {
+        if previous_keys
+            .iter()
+            .any(|item| item.eq_ignore_ascii_case(key))
+        {
             continue;
         }
         if let Err(error) = app.global_shortcut().register(key.as_str()) {
@@ -564,26 +567,17 @@ enum GlobalShortcutAction {
     OpenTodo,
 }
 
-fn global_shortcut_action(settings: &AppSettings, pressed: &Shortcut) -> Option<GlobalShortcutAction> {
+fn global_shortcut_action(
+    settings: &AppSettings,
+    pressed: &Shortcut,
+) -> Option<GlobalShortcutAction> {
     if !settings.global_shortcut_enabled {
         return None;
     }
-    if settings
-        .create_shortcut
-        .parse::<Shortcut>()
-        .ok()
-        .as_ref()
-        == Some(pressed)
-    {
+    if settings.create_shortcut.parse::<Shortcut>().ok().as_ref() == Some(pressed) {
         return Some(GlobalShortcutAction::OpenCreate);
     }
-    if settings
-        .global_shortcut
-        .parse::<Shortcut>()
-        .ok()
-        .as_ref()
-        == Some(pressed)
-    {
+    if settings.global_shortcut.parse::<Shortcut>().ok().as_ref() == Some(pressed) {
         return Some(GlobalShortcutAction::OpenTodo);
     }
     None

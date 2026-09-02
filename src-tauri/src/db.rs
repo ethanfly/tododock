@@ -2226,8 +2226,10 @@ mod tests {
         drop(Database::open(&path).expect("create current database"));
         {
             let connection = Connection::open(&path).expect("open database as v3");
-            let mut settings = AppSettings::default();
-            settings.create_shortcut = "Control+Space".to_string();
+            let settings = AppSettings {
+                create_shortcut: "Control+Space".to_string(),
+                ..AppSettings::default()
+            };
             let encoded = serde_json::to_string(&settings).expect("encode settings");
             connection
                 .execute(

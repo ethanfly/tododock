@@ -604,11 +604,8 @@ fn dispatch_global_shortcut(app: &tauri::AppHandle, pressed: &Shortcut) {
         return;
     };
     match global_shortcut_action(&settings, pressed) {
-        Some(GlobalShortcutAction::OpenCreate) => open_create_window_from_shortcut(app),
-        Some(GlobalShortcutAction::OpenTodo) => {
-            state.mark_shortcut_started();
-            show_main_window(app, false);
-        }
+        Some(GlobalShortcutAction::OpenCreate) => toggle_create_window_from_shortcut(app),
+        Some(GlobalShortcutAction::OpenTodo) => toggle_main_window_from_shortcut(app),
         None => {}
     }
 }
@@ -822,11 +819,49 @@ fn spawn_auxiliary_window(app: &tauri::AppHandle, kind: &'static str) {
     });
 }
 
-fn open_create_window_from_shortcut(app: &tauri::AppHandle) {
+fn should_hide_window(visible: bool, minimized: bool, dock_hidden: bool) -> bool {
+    visible && !minimized && !dock_hidden
+}
+
+fn is_window_shown(window: &tauri::WebviewWindow, dock_hidden: bool) -> bool {
+    should_hide_window(
+        window.is_visible().unwrap_or(false),
+        window.is_minimized().unwrap_or(false),
+        dock_hidden,
+    )
+}
+
+fn toggle_create_window_from_shortcut(app: &tauri::AppHandle) {
     if let Some(state) = app.try_state::<AppState>() {
         state.mark_shortcut_started();
     }
+    if let Some(window) = app.get_webview_window("create") {
+        if is_window_shown(&window, false) {
+            let _ = window.hide();
+            return;
+        }
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        return;
+    }
     spawn_auxiliary_window(app, GLOBAL_SHORTCUT_WINDOW);
+}
+
+fn toggle_main_window_from_shortcut(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<AppState>() {
+        state.mark_shortcut_started();
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let dock_hidden = app
+            .try_state::<windowing::WindowDockState>()
+            .is_some_and(|state| state.is_hidden());
+        if is_window_shown(&window, dock_hidden) {
+            let _ = window.hide();
+            return;
+        }
+    }
+    show_main_window(app, false);
 }
 
 fn show_main_window(app: &tauri::AppHandle, focus_capture: bool) {
@@ -1107,6 +1142,10 @@ mod tests {
                 .label,
             "create"
         );
+        assert!(should_hide_window(true, false, false));
+        assert!(!should_hide_window(false, false, false));
+        assert!(!should_hide_window(true, true, false));
+        assert!(!should_hide_window(true, false, true));
     }
 
     #[test]

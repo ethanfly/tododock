@@ -242,7 +242,7 @@ export function SettingsDialog({
               ariaLabel="新建待办快捷键"
               onChange={(createShortcut) => onDraftChange({ ...settingsDraft, createShortcut })}
             />
-            <span className="field-hint">默认 Ctrl + Alt + Q，按下后打开新建窗口</span>
+            <span className="field-hint">默认 Ctrl + Alt + Q；窗口显示时再按会隐藏，隐藏时再按会打开</span>
           </label>
           <label className="shortcut-field">
             <span>待办窗口快捷键</span>
@@ -252,7 +252,7 @@ export function SettingsDialog({
               ariaLabel="待办窗口快捷键"
               onChange={(globalShortcut) => onDraftChange({ ...settingsDraft, globalShortcut })}
             />
-            <span className="field-hint">默认 Alt + Space，按下后打开待办列表窗口</span>
+            <span className="field-hint">默认 Alt + Space；窗口显示时再按会隐藏，隐藏时再按会打开</span>
           </label>
         </div>
 

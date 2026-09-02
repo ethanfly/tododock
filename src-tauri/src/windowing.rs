@@ -72,6 +72,10 @@ impl WindowDockState {
         })
     }
 
+    pub fn is_hidden(&self) -> bool {
+        self.inner.lock().map(|inner| inner.hidden).unwrap_or(false)
+    }
+
     pub fn set_auto_hide(&self, enabled: bool) -> Result<DockSnapshot, String> {
         let mut inner = self.inner.lock().map_err(lock_error)?;
         inner.auto_hide = enabled;

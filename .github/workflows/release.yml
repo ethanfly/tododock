@@ -1,0 +1,179 @@
+name: Release desktop apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  quality:
+    name: Quality gate
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, 'chore(release)'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          components: clippy, rustfmt
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm run check
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
+  version:
+    name: Bump version
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      sha: ${{ steps.bump.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - id: bump
+        name: Increment patch version and tag
+        run: |
+          VERSION=$(node scripts/bump-version.mjs patch)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "chore(release): v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git push origin "v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Package (${{ matrix.target }})
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-2025
+          - target: windows-arm64
+            os: windows-11-arm
+          - target: macos-arm64
+            os: macos-15
+          - target: macos-x64
+            os: macos-15-intel
+          - target: linux-x64
+            os: ubuntu-24.04
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          components: clippy, rustfmt
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - name: Verify native build host
+        env:
+          TODODOCK_BUILD_TARGET: ${{ matrix.target }}
+        run: npm run release:host
+      - run: npm run tauri build
+      - name: Generate checksums and build manifest
+        env:
+          GITHUB_SHA: ${{ needs.version.outputs.sha }}
+        run: npm run release:manifest
+      - name: Verify checksums and build manifest
+        run: npm run release:verify
+      - name: Rename checksum files for unique release assets
+        shell: bash
+        run: |
+          bundle="src-tauri/target/release/bundle"
+          mv "$bundle/release-manifest.json" "$bundle/release-manifest-${{ matrix.target }}.json"
+          mv "$bundle/checksums-sha256.txt" "$bundle/checksums-sha256-${{ matrix.target }}.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tododock-${{ matrix.target }}
+          path: src-tauri/target/release/bundle/**
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: [version, package]
+    if: always() && needs.version.result == 'success' && !cancelled()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-bundles
+      - name: Require at least one installer
+        run: |
+          shopt -s globstar nullglob
+          files=(
+            dist-bundles/**/*.exe
+            dist-bundles/**/*.msi
+            dist-bundles/**/*.dmg
+            dist-bundles/**/*.deb
+            dist-bundles/**/*.rpm
+            dist-bundles/**/*.AppImage
+            dist-bundles/**/*.app.tar.gz
+          )
+          printf 'Downloaded artifacts:\n'
+          find dist-bundles -type f | sort
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No installer artifacts were produced."
+            exit 1
+          fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: TodoDock v${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          body: |
+            自动发布的 TodoDock v${{ needs.version.outputs.version }}。
+            当前安装包未代码签名 / 公证，仅用于本地验收。
+          files: |
+            dist-bundles/**/*.exe
+            dist-bundles/**/*.msi
+            dist-bundles/**/*.dmg
+            dist-bundles/**/*.app.tar.gz
+            dist-bundles/**/*.deb
+            dist-bundles/**/*.AppImage
+            dist-bundles/**/*.rpm
+            dist-bundles/**/release-manifest-*.json
+            dist-bundles/**/checksums-sha256-*.txt

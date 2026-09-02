@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Frontend quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+  desktop:
+    name: Desktop (${{ matrix.target }})
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows-2025
+          - target: windows-arm64
+            os: windows-11-arm
+          - target: macos-arm64
+            os: macos-15
+          - target: macos-x64
+            os: macos-15-intel
+          - target: linux-x64
+            os: ubuntu-24.04
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.85.0
+        with:
+          components: clippy, rustfmt
+      - name: Install Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libdbus-1-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - name: Verify native build host
+        env:
+          TODODOCK_BUILD_TARGET: ${{ matrix.target }}
+        run: npm run release:host
+      - name: Verify pinned Rust toolchain
+        run: rustc --version
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Run 10k Todo search performance probe
+        run: cargo test --manifest-path src-tauri/Cargo.toml measures_ten_thousand_todo_search_latency -- --ignored --nocapture
+      - name: Run 10k Todo reminder scan performance probe
+        run: cargo test --manifest-path src-tauri/Cargo.toml measures_ten_thousand_todo_reminder_scan_latency -- --ignored --nocapture
+      - run: npm run tauri build -- --debug --no-bundle

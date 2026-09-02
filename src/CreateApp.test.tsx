@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CreateApp } from "./CreateApp";
 import * as api from "./lib/api";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 beforeEach(() => {
   const values = new Map<string, string>();
@@ -44,5 +47,40 @@ describe("CreateApp window", () => {
     fireEvent.click(screen.getByRole("button", { name: "添加" }));
     await waitFor(() => expect(createTodo).toHaveBeenCalledWith(expect.objectContaining({ title: "买菜" })));
     await waitFor(() => expect(closeWindow).toHaveBeenCalled());
+  });
+
+  it("creates multiple todos generated from images", async () => {
+    vi.spyOn(api, "getSettings").mockResolvedValue({
+      ...api.defaultAppSettings,
+      llmApiKey: "xai-key",
+    });
+    const generate = vi.spyOn(api, "generateTodosFromImages").mockResolvedValue([
+      { title: "买牛奶", body: "", deadline: null },
+      { title: "回邮件", body: "明天", deadline: "2026-09-03T18:00" },
+    ]);
+    const createTodo = vi.spyOn(api, "createTodo");
+    render(<CreateApp />);
+
+    const title = await waitFor(() => screen.getByLabelText("待办内容"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "从剪贴板生成" })).toBeEnabled());
+    const bytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="), (character) => character.charCodeAt(0));
+    const file = new File([bytes], "board.png", { type: "image/png" });
+    fireEvent.paste(title, {
+      clipboardData: {
+        getData: () => "",
+        items: [{ kind: "file", type: "image/png", getAsFile: () => file }],
+        files: [file],
+      },
+    });
+    await waitFor(() => expect(screen.getByAltText("board.png")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "用已添加图片生成" }));
+    await waitFor(() => expect(generate).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByLabelText("待办内容")).toHaveValue("买牛奶"));
+    expect(screen.getByLabelText("额外待办 1 标题")).toHaveValue("回邮件");
+
+    fireEvent.click(screen.getByRole("button", { name: "添加 2 项" }));
+    await waitFor(() => expect(createTodo).toHaveBeenCalledTimes(2));
+    expect(createTodo).toHaveBeenNthCalledWith(1, expect.objectContaining({ title: "买牛奶" }));
+    expect(createTodo).toHaveBeenNthCalledWith(2, expect.objectContaining({ title: "回邮件", body: "明天" }));
   });
 });

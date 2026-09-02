@@ -12,7 +12,8 @@ use crate::zentao::ExternalTask;
 
 const MISSED_REMINDER_GRACE_MS: i64 = 24 * 60 * 60 * 1_000;
 const MAX_PENDING_REMINDERS: i64 = 100;
-const CURRENT_SCHEMA_VERSION: i64 = 4;
+const CURRENT_SCHEMA_VERSION: i64 = 5;
+const MAX_TODO_BODY_CHARS: usize = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1125,6 +1126,56 @@ fn migrate(connection: &Connection) -> Result<(), String> {
             .map_err(error_message)?;
     }
 
+    if version < 5 {
+        raise_todo_body_limit(connection)?;
+        connection
+            .pragma_update(None, "user_version", 5)
+            .map_err(error_message)?;
+    }
+
+    Ok(())
+}
+
+fn raise_todo_body_limit(connection: &Connection) -> Result<(), String> {
+    connection
+        .pragma_update(None, "foreign_keys", false)
+        .map_err(error_message)?;
+    let result = connection.execute_batch(
+        "BEGIN IMMEDIATE;
+         CREATE TABLE todos_v5 (
+            id TEXT PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL CHECK(length(title) BETWEEN 1 AND 240),
+            body TEXT NOT NULL DEFAULT '' CHECK(length(body) <= 1000000),
+            status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open', 'completed', 'archived')),
+            priority INTEGER NOT NULL DEFAULT 0 CHECK(priority BETWEEN 0 AND 3),
+            deadline_at INTEGER,
+            reminder_minutes INTEGER CHECK(reminder_minutes IS NULL OR reminder_minutes BETWEEN 0 AND 525600),
+            completed_at INTEGER,
+            archived_at INTEGER,
+            deleted_at INTEGER,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            sort_order REAL NOT NULL
+         );
+         INSERT INTO todos_v5(
+            id, title, body, status, priority, deadline_at, reminder_minutes,
+            completed_at, archived_at, deleted_at, created_at, updated_at, sort_order
+         )
+         SELECT
+            id, title, body, status, priority, deadline_at, reminder_minutes,
+            completed_at, archived_at, deleted_at, created_at, updated_at, sort_order
+         FROM todos;
+         DROP TABLE todos;
+         ALTER TABLE todos_v5 RENAME TO todos;
+         CREATE INDEX IF NOT EXISTS idx_todos_status_deadline
+            ON todos(status, deadline_at) WHERE deleted_at IS NULL;
+         CREATE INDEX IF NOT EXISTS idx_todos_sort
+            ON todos(status, sort_order) WHERE deleted_at IS NULL;
+         COMMIT;",
+    );
+    let restore_keys = connection.pragma_update(None, "foreign_keys", true);
+    result.map_err(error_message)?;
+    restore_keys.map_err(error_message)?;
     Ok(())
 }
 
@@ -1282,8 +1333,10 @@ fn validate_todo_input(
     if !(1..=240).contains(&title_length) {
         return Err("Todo 标题长度必须为 1–240 个字符".to_string());
     }
-    if body.chars().count() > 100_000 {
-        return Err("Todo Markdown 正文不能超过 100000 个字符".to_string());
+    if body.chars().count() > MAX_TODO_BODY_CHARS {
+        return Err(format!(
+            "Todo Markdown 正文不能超过 {MAX_TODO_BODY_CHARS} 个字符"
+        ));
     }
     if !(0..=3).contains(&priority) {
         return Err("Todo 优先级无效".to_string());
@@ -1323,6 +1376,7 @@ fn validate_settings(settings: &AppSettings) -> Result<(), String> {
         return Err("新建待办和待办窗口快捷键不能相同".to_string());
     }
     validate_zentao_settings(settings)?;
+    crate::llm::validate_llm_settings(settings)?;
     if !(0..=525_600).contains(&settings.default_reminder_minutes) {
         return Err("默认提醒提前量无效".to_string());
     }
@@ -2233,6 +2287,38 @@ mod tests {
         assert_eq!(legacy.create_shortcut, "Control+Alt+KeyQ");
         assert!(legacy.zentao_assigned_only);
         assert_eq!(legacy.zentao_url, "");
+        assert_eq!(legacy.llm_endpoint, "https://api.x.ai/v1");
+        assert_eq!(legacy.llm_model, "grok-4.5");
+        assert_eq!(legacy.llm_api_key, "");
+
+        settings.theme = "dark".to_string();
+        settings.llm_endpoint = "javascript:alert(1)".to_string();
+        assert!(database.save_settings(&settings).is_err());
+        settings.llm_endpoint = "https://api.x.ai/v1".to_string();
+        settings.llm_api_key = "x".repeat(513);
+        assert!(database.save_settings(&settings).is_err());
+    }
+
+    #[test]
+    fn accepts_larger_markdown_bodies_after_image_limit_migration() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let path = directory.path().join("tododock.db");
+        drop(Database::open(&path).expect("create current database"));
+        {
+            let connection = Connection::open(&path).expect("open database as v4");
+            connection
+                .execute_batch("PRAGMA user_version = 4;")
+                .expect("mark schema v4");
+        }
+
+        let database = Database::open(&path).expect("migrate to v5");
+        let mut input = sample_input();
+        input.body = "x".repeat(200_000);
+        database
+            .create_todo(&input)
+            .expect("store large markdown body");
+        input.body = "x".repeat(1_000_001);
+        assert!(database.create_todo(&input).is_err());
     }
 
     #[test]

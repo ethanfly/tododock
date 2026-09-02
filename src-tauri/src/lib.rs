@@ -1,5 +1,6 @@
 mod data_files;
 mod db;
+mod llm;
 mod models;
 mod reminders;
 mod windowing;
@@ -15,8 +16,9 @@ use std::time::Instant;
 
 use db::{Database, DueReminder, ReminderAcknowledgement};
 use models::{
-    AppCapabilities, AppSettings, CreateTodoInput, DataFileResult, ImportPreview, ListTodosInput,
-    RestorePreview, Todo, UpdateTodoInput, ZentaoSyncResult,
+    AppCapabilities, AppSettings, CreateTodoInput, DataFileResult, GeneratedTodoDraft,
+    ImportPreview, ListTodosInput, LlmImageInput, RestorePreview, Todo, UpdateTodoInput,
+    ZentaoSyncResult,
 };
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartExt};
@@ -413,6 +415,15 @@ fn sync_zentao_tasks(state: tauri::State<'_, AppState>) -> Result<ZentaoSyncResu
             .sync_external_todos("zentao", &tasks, settings.default_reminder_minutes)?;
     state.wake_reminders();
     Ok(result)
+}
+
+#[tauri::command]
+fn generate_todos_from_images(
+    state: tauri::State<'_, AppState>,
+    images: Vec<LlmImageInput>,
+) -> Result<Vec<GeneratedTodoDraft>, String> {
+    let settings = state.database.load_settings()?;
+    llm::generate_todos_from_images(&settings, &images)
 }
 
 #[tauri::command]
@@ -1004,7 +1015,8 @@ pub fn run() {
             preview_restore,
             import_data,
             restore_data,
-            sync_zentao_tasks
+            sync_zentao_tasks,
+            generate_todos_from_images
         ])
         .setup(move |app| {
             let app_data_dir = app

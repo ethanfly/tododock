@@ -106,7 +106,7 @@ pub fn auxiliary_window_spec(kind: &str, id: Option<&str>) -> Result<AuxiliaryWi
             title: "新建待办".to_string(),
             url: "index.html#/create".to_string(),
             width: 420.0,
-            height: 640.0,
+            height: 700.0,
         }),
         "settings" => Ok(AuxiliaryWindowSpec {
             kind: "settings",
@@ -114,7 +114,7 @@ pub fn auxiliary_window_spec(kind: &str, id: Option<&str>) -> Result<AuxiliaryWi
             title: "设置".to_string(),
             url: "index.html#/settings".to_string(),
             width: 440.0,
-            height: 680.0,
+            height: 760.0,
         }),
         "edit" => {
             let id = id

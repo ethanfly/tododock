@@ -1,8 +1,9 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { isDesktopRuntime } from "../lib/api";
+import { isSafeLocalImageSrc } from "../lib/safeImage";
 
 interface MarkdownBodyProps {
   markdown: string;
@@ -22,6 +23,7 @@ export function MarkdownBody({ markdown }: MarkdownBodyProps) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       skipHtml
+      urlTransform={(url) => (isSafeLocalImageSrc(url) ? url : defaultUrlTransform(url))}
       components={{
         a({ href, children }) {
           const safeHref = href && isSafeUrl(href) ? href : undefined;
@@ -42,6 +44,9 @@ export function MarkdownBody({ markdown }: MarkdownBodyProps) {
         img({ src, alt }) {
           const source = typeof src === "string" ? src : "";
           const label = alt?.trim() || "未命名图片";
+          if (isSafeLocalImageSrc(source)) {
+            return <img className="markdown-inline-image" src={source} alt={label} />;
+          }
           return (
             <span
               className="markdown-image-placeholder"
@@ -49,7 +54,7 @@ export function MarkdownBody({ markdown }: MarkdownBodyProps) {
               aria-label={`图片：${label}`}
               data-markdown-image-source={source}
               data-markdown-image-alt={alt ?? ""}
-              title="为保持本地优先，Markdown 图片不会自动联网加载"
+              title="为保持本地优先，远程 Markdown 图片不会自动联网加载"
             >
               图片 · {label}
             </span>

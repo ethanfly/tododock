@@ -254,6 +254,41 @@ export function SettingsDialog({
             />
             <span className="field-hint">默认 Alt + Space；窗口显示时再按会隐藏，隐藏时再按会打开</span>
           </label>
+          <label className="llm-field">
+            <span>大模型端点</span>
+            <input
+              value={settingsDraft.llmEndpoint}
+              maxLength={300}
+              placeholder="https://api.x.ai/v1"
+              aria-label="大模型端点"
+              autoComplete="off"
+              onChange={(event) => onDraftChange({ ...settingsDraft, llmEndpoint: event.target.value })}
+            />
+            <span className="field-hint">兼容 OpenAI Chat Completions。默认 SpaceXAI（api.x.ai）。密钥只保存在本机，图片仅在你点击生成时发送。</span>
+          </label>
+          <label>
+            <span>模型</span>
+            <input
+              value={settingsDraft.llmModel}
+              maxLength={80}
+              placeholder="grok-4.5"
+              aria-label="大模型名称"
+              autoComplete="off"
+              onChange={(event) => onDraftChange({ ...settingsDraft, llmModel: event.target.value })}
+            />
+          </label>
+          <label>
+            <span>API 密钥</span>
+            <input
+              type="password"
+              value={settingsDraft.llmApiKey}
+              maxLength={512}
+              placeholder="可选，本地模型可留空"
+              aria-label="大模型 API 密钥"
+              autoComplete="off"
+              onChange={(event) => onDraftChange({ ...settingsDraft, llmApiKey: event.target.value })}
+            />
+          </label>
         </div>
 
         <p className="data-directory" title={dataDirectory}>

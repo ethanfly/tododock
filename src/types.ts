@@ -73,6 +73,24 @@ export interface AppSettings {
   zentaoAccount: string;
   zentaoPassword: string;
   zentaoAssignedOnly: boolean;
+  llmEndpoint: string;
+  llmApiKey: string;
+  llmModel: string;
+}
+
+export const MAX_TODO_BODY_CHARS = 1_000_000;
+export const DEFAULT_LLM_ENDPOINT = "https://api.x.ai/v1";
+export const DEFAULT_LLM_MODEL = "grok-4.5";
+
+export interface LlmImageInput {
+  mime: string;
+  dataBase64: string;
+}
+
+export interface GeneratedTodoDraft {
+  title: string;
+  body: string;
+  deadline: string | null;
 }
 
 export interface ZentaoSyncResult {

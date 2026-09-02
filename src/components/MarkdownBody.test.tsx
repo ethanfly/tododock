@@ -32,4 +32,12 @@ describe("MarkdownBody", () => {
     expect(document.querySelector("img")).toBeNull();
     expect(screen.getByRole("img", { name: "图片：tracking pixel" })).toHaveTextContent("图片 · tracking pixel");
   });
+
+  it("renders local data-URL images", () => {
+    const source = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    render(<MarkdownBody markdown={`![diagram](${source})`} />);
+    const image = document.querySelector("img");
+    expect(image).toHaveAttribute("src", source);
+    expect(image).toHaveAttribute("alt", "diagram");
+  });
 });

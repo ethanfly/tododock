@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MarkdownEditor } from "./MarkdownEditor";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function ControlledEditor({ initialValue }: { initialValue: string }) {
   const [value, setValue] = useState(initialValue);
@@ -111,6 +114,40 @@ describe("MarkdownEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "所见即所得" }));
     const visual = screen.getByRole("textbox", { name: "测试备注，所见即所得" });
     await waitFor(() => expect(visual.querySelector("h2")).toHaveTextContent("Source"));
+  });
+
+  it("opens an in-app link dialog instead of window.prompt", async () => {
+    const prompt = vi.spyOn(window, "prompt");
+    render(<ControlledEditor initialValue="" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "链接" }));
+    expect(prompt).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "插入链接" });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByLabelText("链接地址")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("链接地址"), { target: { value: "https://example.com" } });
+    const exec = vi.fn(() => true);
+    Object.defineProperty(document, "execCommand", { configurable: true, value: exec });
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
+    expect(exec).toHaveBeenCalledWith("insertHTML", false, expect.stringContaining("https://example.com"));
+    expect(screen.queryByRole("dialog", { name: "插入链接" })).toBeNull();
+  });
+
+  it("inserts a pasted image into the visual editor", async () => {
+    const exec = vi.fn(() => true);
+    Object.defineProperty(document, "execCommand", { configurable: true, value: exec });
+    render(<ControlledEditor initialValue="" />);
+    const editor = screen.getByRole("textbox", { name: "测试备注，所见即所得" });
+    const bytes = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="), (character) => character.charCodeAt(0));
+    const file = new File([bytes], "shot.png", { type: "image/png" });
+    const clipboardData = {
+      getData: () => "",
+      items: [{ kind: "file", type: "image/png", getAsFile: () => file }],
+      files: [file],
+    };
+    fireEvent.paste(editor, { clipboardData });
+    await waitFor(() => expect(exec).toHaveBeenCalledWith("insertHTML", false, expect.stringContaining("data:image/")));
   });
 
   it("keeps links editable without navigating the desktop webview", async () => {

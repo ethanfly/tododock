@@ -47,6 +47,13 @@ describe("editableElementToMarkdown", () => {
     expect(editableElementToMarkdown(root)).toBe("![diagram](https://example.com/a.png)");
   });
 
+  it("serializes an inline local image as Markdown", () => {
+    const root = document.createElement("div");
+    root.innerHTML = "<p><img src='data:image/png;base64,AAA' alt='shot'></p>";
+
+    expect(editableElementToMarkdown(root)).toBe("![shot](data:image/png;base64,AAA)");
+  });
+
   it("keeps raw Markdown typed into a plain visual surface", () => {
     const root = document.createElement("div");
     root.innerHTML = "<div>**important**</div><div>- [ ] review</div><div>`code`</div>";

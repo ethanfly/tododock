@@ -105,6 +105,7 @@ describe("form field chrome", () => {
     expect(document.querySelector("input[type='datetime-local']")).toBeNull();
     expect(document.querySelector("input[type='time']")).toBeNull();
     expect(screen.queryByLabelText("禅道地址")).toBeNull();
+    expect(fieldChrome(screen.getByLabelText("大模型端点")).height).toBe("34px");
 
     const theme = fieldChrome(screen.getByLabelText("主题"));
     const reminder = fieldChrome(screen.getByLabelText("默认提醒"));

@@ -9,11 +9,14 @@ import {
   closeAuxiliaryWindow,
   createTodo,
   defaultAppSettings,
+  generateTodosFromImages,
   getSettings,
   notifyTodosChanged,
   recordCaptureFocused,
 } from "./lib/api";
+import { capturedImageToLlmInput, type CapturedImage } from "./lib/clipboardImages";
 import { fromDateTimeLocal } from "./lib/date";
+import { isLlmConfigured } from "./lib/llm";
 import { ensureNotificationPermission } from "./lib/notifications";
 import type { AppSettings } from "./types";
 
@@ -39,22 +42,25 @@ export function CreateApp() {
     void recordCaptureFocused().catch(() => undefined);
   }, []);
 
-  async function onSubmit(input: { title: string; body: string; deadline: string }) {
+  async function onSubmit(items: Array<{ title: string; body: string; deadline: string }>) {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const deadlineAt = fromDateTimeLocal(input.deadline);
-      const reminderMinutes = deadlineAt === null ? null : settings.defaultReminderMinutes;
-      const notificationsReady = reminderMinutes !== null
-        ? await ensureNotificationPermission().catch(() => false)
-        : true;
-      await createTodo({
-        title: input.title,
-        body: input.body,
-        priority: 0,
-        deadlineAt,
-        reminderMinutes,
-      });
+      let notificationsReady = true;
+      for (const item of items) {
+        const deadlineAt = fromDateTimeLocal(item.deadline);
+        const reminderMinutes = deadlineAt === null ? null : settings.defaultReminderMinutes;
+        if (reminderMinutes !== null) {
+          notificationsReady = await ensureNotificationPermission().catch(() => false) && notificationsReady;
+        }
+        await createTodo({
+          title: item.title,
+          body: item.body,
+          priority: 0,
+          deadlineAt,
+          reminderMinutes,
+        });
+      }
       await notifyTodosChanged();
       if (!notificationsReady) {
         setError("Todo 已保存，但系统通知权限不可用；到期时只会在应用内显示状态。");
@@ -68,6 +74,10 @@ export function CreateApp() {
     }
   }
 
+  async function onGenerateFromImages(images: CapturedImage[]) {
+    return generateTodosFromImages(images.map(capturedImageToLlmInput));
+  }
+
   return (
     <WindowChrome title="新建待办" closeLabel="关闭新建" bodyClassName="is-create-body" onClose={() => void closeAuxiliaryWindow()}>
       {error && (
@@ -79,7 +89,9 @@ export function CreateApp() {
       <CreateTodoDialog
         submitting={submitting}
         titleInputRef={titleInputRef}
+        llmEnabled={isLlmConfigured(settings)}
         onSubmit={onSubmit}
+        onGenerateFromImages={onGenerateFromImages}
         onClose={() => void closeAuxiliaryWindow()}
       />
     </WindowChrome>

@@ -81,10 +81,24 @@ pub struct AppSettings {
     pub zentao_account: String,
     pub zentao_password: String,
     pub zentao_assigned_only: bool,
+    #[serde(default = "default_llm_endpoint")]
+    pub llm_endpoint: String,
+    #[serde(default)]
+    pub llm_api_key: String,
+    #[serde(default = "default_llm_model")]
+    pub llm_model: String,
 }
 
 fn default_create_shortcut() -> String {
     "Control+Alt+KeyQ".to_string()
+}
+
+pub fn default_llm_endpoint() -> String {
+    "https://api.x.ai/v1".to_string()
+}
+
+pub fn default_llm_model() -> String {
+    "grok-4.5".to_string()
 }
 
 impl Default for AppSettings {
@@ -106,6 +120,9 @@ impl Default for AppSettings {
             zentao_account: String::new(),
             zentao_password: String::new(),
             zentao_assigned_only: true,
+            llm_endpoint: default_llm_endpoint(),
+            llm_api_key: String::new(),
+            llm_model: default_llm_model(),
         }
     }
 }
@@ -151,6 +168,21 @@ pub struct RestorePreview {
 pub struct DataFileResult {
     pub path: String,
     pub todo_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmImageInput {
+    pub mime: String,
+    pub data_base64: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GeneratedTodoDraft {
+    pub title: String,
+    pub body: String,
+    pub deadline: Option<String>,
 }
 
 #[derive(Debug, Serialize, PartialEq)]

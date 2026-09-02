@@ -410,7 +410,7 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 .window-form .field-label { margin-top: 12px; flex: none; }
 .window-form .datetime-picker, .window-form .field-hint, .window-form .editor-footer,
 .window-form .editor-grid, .window-form .priority-editor-row, .window-form .editor-body-label,
-.window-form .field-error { flex: none; }
+.window-form .field-error, .window-form .create-image-capture, .window-form .create-extra-drafts { flex: none; }
 .window-form > input:not([type="checkbox"]):not([type="radio"]),
 .window-form textarea,
 .window-form select {
@@ -493,6 +493,84 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 .markdown-visual-surface blockquote { padding-left: 9px; border-left: 3px solid rgba(101, 88, 232, 0.35); color: var(--ink-soft); }
 .markdown-visual-surface code { padding: 1px 4px; border-radius: 4px; background: var(--surface-muted); font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; font-size: 0.92em; }
 .markdown-image-placeholder { display: inline-flex; align-items: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink-soft); background: var(--surface-muted); font-size: 0.9em; }
+.markdown-inline-image, .markdown-visual-surface img, .markdown-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 6px 0;
+  border-radius: 7px;
+}
+.todo-body .markdown-inline-image, .todo-body img { max-height: 48px; margin: 4px 0; }
+.markdown-link-popover {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+}
+.markdown-link-popover strong { font-size: 14px; }
+.markdown-link-popover label { display: flex; flex-direction: column; gap: 4px; color: var(--ink-soft); font-size: 12px; }
+.markdown-link-popover input {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: var(--surface-muted);
+  font-size: 14px;
+}
+.markdown-link-popover-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.markdown-link-popover-actions button { min-height: 32px; padding: 0 10px; border: 0; border-radius: 7px; color: var(--ink-soft); background: var(--surface-muted); font-size: 13px; cursor: pointer; }
+.create-image-capture {
+  margin-top: 12px;
+  padding: 8px 9px 9px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}
+.create-image-capture-header { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.create-image-capture-header strong { font-size: 13px; }
+.create-image-capture-header span { color: var(--ink-faint); font-size: 12px; line-height: 1.4; }
+.create-image-strip { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.create-image-strip li { position: relative; width: 52px; height: 52px; }
+.create-image-strip img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; background: var(--surface-muted); }
+.create-image-strip button {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  background: rgba(32, 34, 42, 0.72);
+  cursor: pointer;
+}
+.create-image-actions { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+.create-extra-drafts { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.create-extra-drafts li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.create-extra-drafts input {
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  font-size: 15px;
+}
+.settings-grid .llm-field { grid-column: 1 / -1; }
 .markdown-visual-surface pre { padding: 9px; overflow: auto; border-radius: 7px; background: var(--surface-muted); white-space: pre; }
 .markdown-visual-surface pre code { padding: 0; background: transparent; }
 .markdown-visual-surface table { width: 100%; border-collapse: collapse; }
@@ -681,7 +759,7 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 :root[data-theme="dark"] .capture-details, :root[data-theme="dark"] .search-row { background: rgba(255, 255, 255, 0.035); }
 :root[data-theme="dark"] .reminder-banner { color: #ecc884; background: rgba(118, 82, 22, 0.25); }
 :root[data-theme="dark"] .settings-card, :root[data-theme="dark"] .settings-dialog { background: linear-gradient(135deg, rgba(83, 72, 166, 0.18), rgba(255, 255, 255, 0.025)); }
-:root[data-theme="dark"] .shortcut-key kbd, :root[data-theme="dark"] .statusbar kbd, :root[data-theme="dark"] .capture-body-field textarea, :root[data-theme="dark"] .editor-panel input, :root[data-theme="dark"] .editor-panel textarea, :root[data-theme="dark"] .editor-panel select, :root[data-theme="dark"] .window-form input:not([type="checkbox"]):not([type="radio"]), :root[data-theme="dark"] .window-form textarea, :root[data-theme="dark"] .window-form select, :root[data-theme="dark"] .priority-picker button, :root[data-theme="dark"] .markdown-preview, :root[data-theme="dark"] .datetime-picker, :root[data-theme="dark"] .datetime-popover, :root[data-theme="dark"] .shortcut-recorder, :root[data-theme="dark"] .settings-grid .zentao-field input { background: #25262d; }
+:root[data-theme="dark"] .shortcut-key kbd, :root[data-theme="dark"] .statusbar kbd, :root[data-theme="dark"] .capture-body-field textarea, :root[data-theme="dark"] .editor-panel input, :root[data-theme="dark"] .editor-panel textarea, :root[data-theme="dark"] .editor-panel select, :root[data-theme="dark"] .window-form input:not([type="checkbox"]):not([type="radio"]), :root[data-theme="dark"] .window-form textarea, :root[data-theme="dark"] .window-form select, :root[data-theme="dark"] .priority-picker button, :root[data-theme="dark"] .markdown-preview, :root[data-theme="dark"] .datetime-picker, :root[data-theme="dark"] .datetime-popover, :root[data-theme="dark"] .shortcut-recorder, :root[data-theme="dark"] .settings-grid .zentao-field input, :root[data-theme="dark"] .settings-grid .llm-field input, :root[data-theme="dark"] .markdown-link-popover, :root[data-theme="dark"] .markdown-link-popover input { background: #25262d; }
 :root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):focus, :root[data-theme="dark"] textarea:focus, :root[data-theme="dark"] select:focus, :root[data-theme="dark"] [contenteditable="true"]:focus, :root[data-theme="dark"] .datetime-picker.is-open, :root[data-theme="dark"] .datetime-picker:focus-within, :root[data-theme="dark"] .search-row:focus-within { background: #2c2d36; }
 :root[data-theme="dark"] .editor-panel, :root[data-theme="dark"] .dialog-panel { background: rgba(29, 30, 36, 0.98); }
 :root[data-theme="dark"] .skeleton-line { background: linear-gradient(90deg, #292a31, #33343d, #292a31); background-size: 200% 100%; }
@@ -710,7 +788,7 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
   :root:not([data-theme="light"]) .capture-details, :root:not([data-theme="light"]) .search-row { background: rgba(255, 255, 255, 0.035); }
   :root:not([data-theme="light"]) .reminder-banner { color: #ecc884; background: rgba(118, 82, 22, 0.25); }
   :root:not([data-theme="light"]) .settings-card, :root:not([data-theme="light"]) .settings-dialog { background: linear-gradient(135deg, rgba(83, 72, 166, 0.18), rgba(255, 255, 255, 0.025)); }
-  :root:not([data-theme="light"]) .shortcut-key kbd, :root:not([data-theme="light"]) .statusbar kbd, :root:not([data-theme="light"]) .capture-body-field textarea, :root:not([data-theme="light"]) .editor-panel input, :root:not([data-theme="light"]) .editor-panel textarea, :root:not([data-theme="light"]) .editor-panel select, :root:not([data-theme="light"]) .window-form input:not([type="checkbox"]):not([type="radio"]), :root:not([data-theme="light"]) .window-form textarea, :root:not([data-theme="light"]) .window-form select, :root:not([data-theme="light"]) .priority-picker button, :root:not([data-theme="light"]) .markdown-preview, :root:not([data-theme="light"]) .datetime-picker, :root:not([data-theme="light"]) .datetime-popover, :root:not([data-theme="light"]) .shortcut-recorder, :root:not([data-theme="light"]) .settings-grid .zentao-field input { background: #25262d; }
+  :root:not([data-theme="light"]) .shortcut-key kbd, :root:not([data-theme="light"]) .statusbar kbd, :root:not([data-theme="light"]) .capture-body-field textarea, :root:not([data-theme="light"]) .editor-panel input, :root:not([data-theme="light"]) .editor-panel textarea, :root:not([data-theme="light"]) .editor-panel select, :root:not([data-theme="light"]) .window-form input:not([type="checkbox"]):not([type="radio"]), :root:not([data-theme="light"]) .window-form textarea, :root:not([data-theme="light"]) .window-form select, :root:not([data-theme="light"]) .priority-picker button, :root:not([data-theme="light"]) .markdown-preview, :root:not([data-theme="light"]) .datetime-picker, :root:not([data-theme="light"]) .datetime-popover, :root:not([data-theme="light"]) .shortcut-recorder, :root:not([data-theme="light"]) .settings-grid .zentao-field input, :root:not([data-theme="light"]) .settings-grid .llm-field input, :root:not([data-theme="light"]) .markdown-link-popover, :root:not([data-theme="light"]) .markdown-link-popover input { background: #25262d; }
   :root:not([data-theme="light"]) input:not([type="checkbox"]):not([type="radio"]):focus, :root:not([data-theme="light"]) textarea:focus, :root:not([data-theme="light"]) select:focus, :root:not([data-theme="light"]) [contenteditable="true"]:focus, :root:not([data-theme="light"]) .datetime-picker.is-open, :root:not([data-theme="light"]) .datetime-picker:focus-within, :root:not([data-theme="light"]) .search-row:focus-within { background: #2c2d36; }
   :root:not([data-theme="light"]) .editor-panel, :root:not([data-theme="light"]) .dialog-panel { background: rgba(29, 30, 36, 0.98); }
   :root:not([data-theme="light"]) .skeleton-line { background: linear-gradient(90deg, #292a31, #33343d, #292a31); background-size: 200% 100%; }

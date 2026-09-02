@@ -9,7 +9,9 @@ import type {
   DockSnapshot,
   DueReminder,
   ListTodosInput,
+  GeneratedTodoDraft,
   ImportPreview,
+  LlmImageInput,
   RestorePreview,
   Todo,
   UpdateTodoInput,
@@ -64,6 +66,15 @@ const appSettingsSchema = z.object({
   zentaoAccount: z.string().default(""),
   zentaoPassword: z.string().default(""),
   zentaoAssignedOnly: z.boolean().default(true),
+  llmEndpoint: z.string().default("https://api.x.ai/v1"),
+  llmApiKey: z.string().default(""),
+  llmModel: z.string().default("grok-4.5"),
+});
+
+const generatedTodoDraftSchema = z.object({
+  title: z.string(),
+  body: z.string().default(""),
+  deadline: z.string().nullable().default(null),
 });
 
 const zentaoSyncResultSchema = z.object({
@@ -115,6 +126,9 @@ export const defaultAppSettings: AppSettings = {
   zentaoAccount: "",
   zentaoPassword: "",
   zentaoAssignedOnly: true,
+  llmEndpoint: "https://api.x.ai/v1",
+  llmApiKey: "",
+  llmModel: "grok-4.5",
 };
 
 const browserStorageKey = "tododock:browser-preview";
@@ -543,4 +557,9 @@ export async function restoreData(json: string): Promise<RestorePreview> {
 export async function syncZentaoTasks(): Promise<ZentaoSyncResult> {
   if (!inTauri()) throw new Error("浏览器预览不同步禅道任务");
   return zentaoSyncResultSchema.parse(await invoke("sync_zentao_tasks"));
+}
+
+export async function generateTodosFromImages(images: LlmImageInput[]): Promise<GeneratedTodoDraft[]> {
+  if (!inTauri()) throw new Error("浏览器预览不能调用大模型");
+  return z.array(generatedTodoDraftSchema).parse(await invoke("generate_todos_from_images", { images }));
 }

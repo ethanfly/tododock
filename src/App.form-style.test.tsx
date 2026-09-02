@@ -189,4 +189,27 @@ describe("form field chrome", () => {
     expect(themeShadow).toMatch(/0\s+0\s+0\s+2px/);
     expect(themeShadow.includes("inset")).toBe(false);
   });
+
+  it("drops the light glass stroke on the window and empty orbit in dark theme", () => {
+    const root = document.documentElement;
+    const shell = document.createElement("main");
+    shell.className = "app-shell";
+    const orbit = document.createElement("span");
+    orbit.className = "empty-orbit";
+    document.body.append(shell, orbit);
+
+    expect(declared(shell, "border")).toContain("var(--window-stroke)");
+    expect(declared(orbit, "background")).toContain("var(--empty-orbit-fill)");
+    expect(declared(root, "--window-stroke")).toMatch(/255,\s*255,\s*255,\s*0\.72/);
+
+    root.dataset.theme = "dark";
+    expect(declared(root, "--window-stroke")).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.07\)/);
+    expect(declared(root, "--empty-orbit-fill")).not.toMatch(/236,\s*234,\s*255/);
+    expect(declared(root, "--empty-orbit-fill")).not.toMatch(/255,\s*255,\s*255/);
+    expect(declared(root, "--empty-orbit-ring")).toMatch(/149,\s*140,\s*255/);
+
+    delete root.dataset.theme;
+    shell.remove();
+    orbit.remove();
+  });
 });

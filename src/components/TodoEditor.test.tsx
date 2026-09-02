@@ -43,7 +43,7 @@ describe("TodoEditor", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("keeps keyboard focus inside the modal editor", () => {
+  it("keeps keyboard focus inside the editor form", () => {
     render(
       <TodoEditor
         todo={todo}
@@ -53,17 +53,16 @@ describe("TodoEditor", () => {
       />,
     );
 
-    const form = screen.getByRole("dialog").querySelector("form");
-    const close = screen.getByRole("button", { name: "关闭编辑" });
+    const form = screen.getByRole("form", { name: "编辑待办" });
+    const title = screen.getByLabelText("标题");
     const save = screen.getByRole("button", { name: "保存" });
-    expect(form).not.toBeNull();
 
-    close.focus();
-    fireEvent.keyDown(form!, { key: "Tab", shiftKey: true });
+    title.focus();
+    fireEvent.keyDown(form, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(save);
 
-    fireEvent.keyDown(form!, { key: "Tab" });
-    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(form, { key: "Tab" });
+    expect(document.activeElement).toBe(title);
   });
 
   it("restores focus to the control that opened the editor", () => {

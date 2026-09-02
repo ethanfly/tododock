@@ -11,6 +11,7 @@ import {
   defaultAppSettings,
   deleteTodo,
   getSettings,
+  getTodo,
   listTodos,
   openAuxiliaryWindow,
   purgeDeletedTodos,
@@ -76,6 +77,7 @@ describe("browser preview Todo storage", () => {
       reminderMinutes: null,
     });
     expect((await listTodos({ filter: "open", search: "local" }))).toHaveLength(1);
+    expect((await getTodo(created.id)).title).toBe("Local task");
 
     await updateTodo({
       id: created.id,
@@ -155,19 +157,24 @@ describe("browser preview Todo storage", () => {
 describe("openAuxiliaryWindow", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("opens a separate browser window for create and settings", async () => {
+  it("opens a separate browser window for create, settings, and edit", async () => {
     const opened: Array<{ url: string; name: string }> = [];
     vi.spyOn(window, "open").mockImplementation((url, name) => {
       opened.push({ url: String(url), name: String(name) });
       return null;
     });
+    const todoId = "01991a3b-e122-7fd0-a321-f4af72160cb8";
 
     await openAuxiliaryWindow("create");
     await openAuxiliaryWindow("settings");
+    await openAuxiliaryWindow("edit", todoId);
 
     expect(opened[0]?.url).toContain("#/create");
     expect(opened[0]?.name).toBe("tododock-create");
     expect(opened[1]?.url).toContain("#/settings");
     expect(opened[1]?.name).toBe("tododock-settings");
+    expect(opened[2]?.url).toContain(`#/edit/${todoId}`);
+    expect(opened[2]?.name).toBe(`tododock-edit-${todoId}`);
+    await expect(openAuxiliaryWindow("edit")).rejects.toThrow("缺少待办 ID");
   });
 });

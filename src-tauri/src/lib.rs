@@ -161,6 +161,11 @@ fn list_todos(
 }
 
 #[tauri::command]
+fn get_todo(state: tauri::State<'_, AppState>, id: String) -> Result<Todo, String> {
+    state.database.get_todo(&id)
+}
+
+#[tauri::command]
 fn create_todo(state: tauri::State<'_, AppState>, input: CreateTodoInput) -> Result<Todo, String> {
     let todo = state.database.create_todo(&input)?;
     state.wake_reminders();
@@ -279,19 +284,27 @@ fn hide_docked_window(
 }
 
 fn auxiliary_window_is_open(app: &tauri::AppHandle) -> bool {
-    ["create", "settings"]
-        .iter()
-        .any(|label| app.get_webview_window(label).is_some())
+    app.webview_windows()
+        .keys()
+        .any(|label| windowing::is_auxiliary_window_label(label))
 }
 
 #[tauri::command]
-async fn open_auxiliary_window(app: tauri::AppHandle, kind: String) -> Result<(), String> {
-    show_or_create_auxiliary_window(&app, &kind).await
+async fn open_auxiliary_window(
+    app: tauri::AppHandle,
+    kind: String,
+    id: Option<String>,
+) -> Result<(), String> {
+    show_or_create_auxiliary_window(&app, &kind, id.as_deref()).await
 }
 
-async fn show_or_create_auxiliary_window(app: &tauri::AppHandle, kind: &str) -> Result<(), String> {
-    let spec = windowing::auxiliary_window_spec(kind).ok_or_else(|| "未知窗口".to_string())?;
-    if let Some(existing) = app.get_webview_window(spec.label) {
+async fn show_or_create_auxiliary_window(
+    app: &tauri::AppHandle,
+    kind: &str,
+    id: Option<&str>,
+) -> Result<(), String> {
+    let spec = windowing::auxiliary_window_spec(kind, id)?;
+    if let Some(existing) = app.get_webview_window(&spec.label) {
         let _ = existing.unminimize();
         let _ = existing.show();
         let _ = existing.set_focus();
@@ -303,8 +316,8 @@ async fn show_or_create_auxiliary_window(app: &tauri::AppHandle, kind: &str) -> 
         .and_then(|state| state.database.load_settings().ok())
         .is_some_and(|settings| settings.always_on_top);
 
-    WebviewWindowBuilder::new(app, spec.label, WebviewUrl::App(spec.url.into()))
-        .title(spec.title)
+    WebviewWindowBuilder::new(app, &spec.label, WebviewUrl::App(spec.url.into()))
+        .title(&spec.title)
         .inner_size(spec.width, spec.height)
         .min_inner_size(340.0, 420.0)
         .decorations(false)
@@ -803,7 +816,7 @@ const GLOBAL_SHORTCUT_WINDOW: &str = "create";
 fn spawn_auxiliary_window(app: &tauri::AppHandle, kind: &'static str) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(error) = show_or_create_auxiliary_window(&app, kind).await {
+        if let Err(error) = show_or_create_auxiliary_window(&app, kind, None).await {
             log::error!("failed to open {kind} window: {error}");
         }
     });
@@ -894,7 +907,7 @@ pub fn run() {
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(persisted_window_flags())
-                .with_denylist(&["create", "settings"])
+                .with_denylist(&["create", "settings", "edit"])
                 .build(),
         )
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
@@ -924,6 +937,7 @@ pub fn run() {
         ))
         .invoke_handler(tauri::generate_handler![
             list_todos,
+            get_todo,
             create_todo,
             update_todo,
             set_todo_completed,
@@ -1088,7 +1102,7 @@ mod tests {
         };
         assert_eq!(global_shortcut_action(&disabled, &create), None);
         assert_eq!(
-            windowing::auxiliary_window_spec(GLOBAL_SHORTCUT_WINDOW)
+            windowing::auxiliary_window_spec(GLOBAL_SHORTCUT_WINDOW, None)
                 .expect("create spec")
                 .label,
             "create"

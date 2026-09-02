@@ -87,6 +87,12 @@ impl Database {
         self.query_todos(input, limit, offset)
     }
 
+    pub fn get_todo(&self, id: &str) -> Result<Todo, String> {
+        validate_id(id)?;
+        let connection = self.connection.lock().map_err(lock_error)?;
+        query_todo(&connection, id)?.ok_or_else(|| "Todo 不存在或已被删除".to_string())
+    }
+
     fn query_todos(
         &self,
         input: &ListTodosInput,
@@ -1589,6 +1595,16 @@ mod tests {
         let created = database.create_todo(&sample_input()).expect("create todo");
         assert_eq!(created.title, "Ship the first build");
         assert_eq!(created.status, "open");
+        assert_eq!(
+            database.get_todo(&created.id).expect("get todo").title,
+            created.title
+        );
+        assert_eq!(
+            database
+                .get_todo("01991a3b-e122-7fd0-a321-f4af72160cb8")
+                .unwrap_err(),
+            "Todo 不存在或已被删除"
+        );
 
         let open = database
             .list_todos(&ListTodosInput {

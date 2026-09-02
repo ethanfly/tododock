@@ -84,40 +84,55 @@ impl WindowDockState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AuxiliaryWindowSpec {
     pub kind: &'static str,
-    pub label: &'static str,
-    pub title: &'static str,
-    pub url: &'static str,
+    pub label: String,
+    pub title: String,
+    pub url: String,
     pub width: f64,
     pub height: f64,
 }
 
-pub fn auxiliary_window_spec(kind: &str) -> Option<AuxiliaryWindowSpec> {
+pub fn auxiliary_window_spec(kind: &str, id: Option<&str>) -> Result<AuxiliaryWindowSpec, String> {
     match kind {
-        "create" => Some(AuxiliaryWindowSpec {
+        "create" => Ok(AuxiliaryWindowSpec {
             kind: "create",
-            label: "create",
-            title: "新建待办",
-            url: "index.html#/create",
+            label: "create".to_string(),
+            title: "新建待办".to_string(),
+            url: "index.html#/create".to_string(),
             width: 420.0,
             height: 640.0,
         }),
-        "settings" => Some(AuxiliaryWindowSpec {
+        "settings" => Ok(AuxiliaryWindowSpec {
             kind: "settings",
-            label: "settings",
-            title: "设置",
-            url: "index.html#/settings",
+            label: "settings".to_string(),
+            title: "设置".to_string(),
+            url: "index.html#/settings".to_string(),
             width: 440.0,
             height: 680.0,
         }),
-        _ => None,
+        "edit" => {
+            let id = id
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| "缺少待办 ID".to_string())?;
+            uuid::Uuid::parse_str(id).map_err(|_| "Todo ID 无效".to_string())?;
+            Ok(AuxiliaryWindowSpec {
+                kind: "edit",
+                label: format!("edit-{id}"),
+                title: "编辑待办".to_string(),
+                url: format!("index.html#/edit/{id}"),
+                width: 420.0,
+                height: 640.0,
+            })
+        }
+        _ => Err("未知窗口".to_string()),
     }
 }
 
 pub fn is_auxiliary_window_label(label: &str) -> bool {
-    matches!(label, "create" | "settings")
+    matches!(label, "create" | "settings") || label.starts_with("edit-")
 }
 
 pub fn ensure_visible(window: &WebviewWindow) -> Result<(), String> {
@@ -480,21 +495,40 @@ mod tests {
     }
 
     #[test]
-    fn maps_create_and_settings_to_independent_windows() {
-        let create = auxiliary_window_spec("create").expect("create spec");
+    fn maps_create_settings_and_edit_to_independent_windows() {
+        let create = auxiliary_window_spec("create", None).expect("create spec");
         assert_eq!(create.label, "create");
         assert_eq!(create.title, "新建待办");
         assert!(create.url.contains("#/create"));
         assert!(create.height >= 420.0);
 
-        let settings = auxiliary_window_spec("settings").expect("settings spec");
+        let settings = auxiliary_window_spec("settings", None).expect("settings spec");
         assert_eq!(settings.label, "settings");
         assert_eq!(settings.title, "设置");
         assert!(settings.url.contains("#/settings"));
+
+        let todo_id = "01991a3b-e122-7fd0-a321-f4af72160cb8";
+        let edit = auxiliary_window_spec("edit", Some(todo_id)).expect("edit spec");
+        assert_eq!(edit.label, format!("edit-{todo_id}"));
+        assert_eq!(edit.title, "编辑待办");
+        assert!(edit.url.contains(&format!("#/edit/{todo_id}")));
         assert!(is_auxiliary_window_label("create"));
         assert!(is_auxiliary_window_label("settings"));
+        assert!(is_auxiliary_window_label(&edit.label));
         assert!(!is_auxiliary_window_label("main"));
-        assert!(auxiliary_window_spec("unknown").is_none());
+        assert!(!is_auxiliary_window_label("editor"));
+        assert_eq!(
+            auxiliary_window_spec("edit", None).unwrap_err(),
+            "缺少待办 ID"
+        );
+        assert_eq!(
+            auxiliary_window_spec("edit", Some("not-a-uuid")).unwrap_err(),
+            "Todo ID 无效"
+        );
+        assert_eq!(
+            auxiliary_window_spec("unknown", None).unwrap_err(),
+            "未知窗口"
+        );
     }
 
     #[cfg(target_os = "linux")]

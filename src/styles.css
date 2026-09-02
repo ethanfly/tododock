@@ -405,7 +405,9 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 .window-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .window-form > input { flex: none; }
 .window-form .field-label { margin-top: 12px; flex: none; }
-.window-form .datetime-picker, .window-form .field-hint, .window-form .editor-footer { flex: none; }
+.window-form .datetime-picker, .window-form .field-hint, .window-form .editor-footer,
+.window-form .editor-grid, .window-form .priority-editor-row, .window-form .editor-body-label,
+.window-form .field-error { flex: none; }
 .window-form > input:not([type="checkbox"]):not([type="radio"]),
 .window-form textarea,
 .window-form select {

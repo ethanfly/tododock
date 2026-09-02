@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import * as api from "./lib/api";
+import { createTodo } from "./lib/api";
 import type { Todo } from "./types";
 
 afterEach(() => {
@@ -51,11 +52,18 @@ function todo(id: string, title: string): Todo {
 }
 
 describe("home layout", () => {
-  it("keeps the list on home and opens create/settings as new windows", async () => {
+  it("keeps the list on home and opens create/settings/edit as new windows", async () => {
     const opened: string[] = [];
     vi.spyOn(window, "open").mockImplementation((url) => {
       opened.push(String(url));
       return null;
+    });
+    const created = await createTodo({
+      title: "编辑窗口任务",
+      body: "",
+      priority: 0,
+      deadlineAt: null,
+      reminderMinutes: null,
     });
 
     render(<App />);
@@ -77,6 +85,13 @@ describe("home layout", () => {
     expect(screen.queryByLabelText("主题")).toBeNull();
     expect(screen.queryByLabelText("禅道地址")).toBeNull();
     expect(screen.queryByRole("button", { name: "同步禅道" })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "搜索 Todo" })).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByText("编辑窗口任务")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "编辑 编辑窗口任务" }));
+    await waitFor(() => expect(opened.some((url) => url.includes(`#/edit/${created.id}`))).toBe(true));
+    expect(screen.queryByLabelText("标题")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("textbox", { name: "搜索 Todo" })).toBeInTheDocument();
   });
 

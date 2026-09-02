@@ -205,6 +205,16 @@ function matchesBrowserFilter(todo: Todo, input: ListTodosInput): boolean {
   );
 }
 
+export async function getTodo(id: string): Promise<Todo> {
+  if (!todoSchema.shape.id.safeParse(id).success) throw new Error("Todo ID 无效");
+  if (inTauri()) {
+    return todoSchema.parse(await invoke("get_todo", { id }));
+  }
+  const todo = readBrowserTodos().find((item) => item.id === id);
+  if (!todo) throw new Error("Todo 不存在或已被删除");
+  return todoSchema.parse(todo);
+}
+
 export async function listTodos(
   input: ListTodosInput,
   pagination: { limit: number; offset: number } = { limit: 500, offset: 0 },
@@ -365,20 +375,26 @@ export function isDesktopRuntime(): boolean {
   return inTauri();
 }
 
-export type AuxiliaryWindowKind = "create" | "settings";
+export type AuxiliaryWindowKind = "create" | "settings" | "edit";
 
-export async function openAuxiliaryWindow(kind: AuxiliaryWindowKind): Promise<void> {
-  if (kind !== "create" && kind !== "settings") throw new Error("未知窗口");
+export async function openAuxiliaryWindow(kind: AuxiliaryWindowKind, id?: string): Promise<void> {
+  if (kind === "edit") {
+    if (!id) throw new Error("缺少待办 ID");
+    if (!todoSchema.shape.id.safeParse(id).success) throw new Error("Todo ID 无效");
+  } else if (kind !== "create" && kind !== "settings") {
+    throw new Error("未知窗口");
+  }
   if (inTauri()) {
-    await invoke("open_auxiliary_window", { kind });
+    await invoke("open_auxiliary_window", { kind, id: id ?? null });
     return;
   }
   const url = new URL(window.location.href);
-  url.hash = `/${kind}`;
-  const features = kind === "create"
-    ? "popup=yes,width=420,height=640"
-    : "popup=yes,width=440,height=680";
-  window.open(url.toString(), `tododock-${kind}`, features)?.focus();
+  url.hash = kind === "edit" && id ? `/edit/${id}` : `/${kind}`;
+  const features = kind === "settings"
+    ? "popup=yes,width=440,height=680"
+    : "popup=yes,width=420,height=640";
+  const name = kind === "edit" && id ? `tododock-edit-${id}` : `tododock-${kind}`;
+  window.open(url.toString(), name, features)?.focus();
 }
 
 export async function closeAuxiliaryWindow(): Promise<void> {

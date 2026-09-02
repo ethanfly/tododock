@@ -140,8 +140,9 @@ describe("form field chrome", () => {
     expect(document.querySelector("input[type='datetime-local']")).toBeNull();
 
     const editorSurface = await waitFor(() => screen.getByRole("textbox", { name: "Markdown 备注，所见即所得" }));
-    expect(declared(editorSurface, "min-height")).toBe("320px");
-    expect(declared(editorSurface, "max-height")).toBe("480px");
+    expect(["0", "0px"]).toContain(declared(editorSurface, "min-height"));
+    expect(declared(editorSurface, "max-height")).toBe("none");
+    expect(document.querySelector(".window-form")).toHaveClass("is-markdown-open");
   });
 
   it("gives the create Markdown editor a larger writing surface only after expand", async () => {

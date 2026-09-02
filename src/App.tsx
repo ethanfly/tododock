@@ -26,7 +26,6 @@ import {
 import { CloseToTrayDialog } from "./components/CloseToTrayDialog";
 import { IconButton } from "./components/IconButton";
 import { ReminderBanner } from "./components/ReminderBanner";
-import { TodoEditor } from "./components/TodoEditor";
 import { TodoItem } from "./components/TodoItem";
 import {
   acknowledgeCloseToTray,
@@ -49,12 +48,10 @@ import {
   setTodoCompleted,
   acknowledgeInAppReminders,
   listInAppReminders,
-  updateTodo,
 } from "./lib/api";
 import { shortcutLabel } from "./lib/shortcut";
-import { ensureNotificationPermission } from "./lib/notifications";
 import { mergeReminderAlerts, removeReminderAlerts } from "./lib/reminders";
-import type { AppCapabilities, AppSettings, DockEdge, DueReminder, Todo, TodoFilter, UpdateTodoInput } from "./types";
+import type { AppCapabilities, AppSettings, DockEdge, DueReminder, Todo, TodoFilter } from "./types";
 
 const filterLabels: Record<TodoFilter, string> = {
   open: "待办",
@@ -81,7 +78,6 @@ function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<TodoFilter>("open");
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<Todo | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -215,7 +211,7 @@ function App() {
     const removeScaleChanged = appWindow.onScaleChanged(reconcileGeometry);
     const removeFocus = appWindow.onFocusChanged(({ payload: focused }) => {
       window.clearTimeout(hideTimer);
-      if (!focused && autoHide && dockedEdge && !editing) {
+      if (!focused && autoHide && dockedEdge) {
         hideTimer = window.setTimeout(() => {
           void hideDockedWindow().catch(() => undefined);
         }, 700);
@@ -242,7 +238,7 @@ function App() {
       void removeScaleChanged.then((remove) => remove());
       void removeFocus.then((remove) => remove());
     };
-  }, [autoHide, dockedEdge, editing]);
+  }, [autoHide, dockedEdge]);
 
   const openCreate = useCallback(() => {
     void openAuxiliaryWindow("create").catch((cause) => {
@@ -253,6 +249,11 @@ function App() {
   const openSettings = useCallback(() => {
     void openAuxiliaryWindow("settings").catch((cause) => {
       setError(errorMessage(cause, "无法打开设置窗口"));
+    });
+  }, []);
+  const openEdit = useCallback((todo: Todo) => {
+    void openAuxiliaryWindow("edit", todo.id).catch((cause) => {
+      setError(errorMessage(cause, "无法打开编辑窗口"));
     });
   }, []);
 
@@ -349,22 +350,6 @@ function App() {
     if (target < 0) return;
     next.splice(target, 0, dragged);
     void persistTodoOrder(next);
-  }
-
-  async function saveTodo(input: UpdateTodoInput) {
-    try {
-      const notificationsReady = input.reminderMinutes !== null
-        ? await ensureNotificationPermission().catch(() => false)
-        : true;
-      await updateTodo(input);
-      await refresh();
-      if (!notificationsReady) {
-        setError("Todo 已保存，但系统通知权限不可用；请在系统设置中允许 TodoDock 通知。");
-      }
-    } catch (cause) {
-      setError(errorMessage(cause, "保存失败"));
-      throw cause;
-    }
   }
 
   async function removeTodo(todo: Todo) {
@@ -549,7 +534,7 @@ function App() {
                 now={now}
                 onToggle={(item) => void toggleTodo(item)}
                 onArchive={(item, archived) => void archiveTodo(item, archived)}
-                onEdit={setEditing}
+                onEdit={openEdit}
                 onDelete={(item) => void removeTodo(item)}
                 reorderEnabled={filter === "open" && search === ""}
                 isFirst={index === 0}
@@ -581,15 +566,6 @@ function App() {
           <kbd>快捷键已关闭</kbd>
         )}
       </footer>
-
-      {editing && (
-        <TodoEditor
-          todo={editing}
-          defaultReminderMinutes={settings.defaultReminderMinutes}
-          onClose={() => setEditing(null)}
-          onSave={saveTodo}
-        />
-      )}
 
       {showCloseExplanation && (
         <CloseToTrayDialog

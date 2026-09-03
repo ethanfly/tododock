@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { boxesOverlap } from "../lib/popoverPlacement";
+import { DATE_POPOVER_INSET, boxesOverlap } from "../lib/popoverPlacement";
 import { DateTimePicker } from "./DateTimePicker";
 
 afterEach(cleanup);
@@ -67,6 +67,53 @@ describe("DateTimePicker", () => {
         expect(placed.height).toBeLessThan(291);
         expect(dialog.style.height).toBe(`${placed.height}px`);
         expect(dialog.style.maxHeight).toBe(`${placed.height}px`);
+        expect(boxesOverlap(placed, fieldBox)).toBe(false);
+        unmount();
+      }
+    } finally {
+      if (innerWidth) Object.defineProperty(window, "innerWidth", innerWidth);
+      if (innerHeight) Object.defineProperty(window, "innerHeight", innerHeight);
+    }
+  });
+
+  it.each([
+    { name: "420×640", width: 420, height: 640, tops: [56, 280, 540] },
+    { name: "340×420", width: 340, height: 420, tops: [56, 180, 330] },
+  ])("places a $name calendar from top, mid, and bottom fields inside the window inset", ({ width, height, tops }) => {
+    const innerWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    const innerHeight = Object.getOwnPropertyDescriptor(window, "innerHeight");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+
+    try {
+      for (const top of tops) {
+        const fieldBox = { top, left: 12, width: 220, height: 36 };
+        const { unmount } = render(
+          <DateTimePicker aria-label="截止时间" value="2026-09-01T18:00" onChange={() => undefined} />,
+        );
+        const field = screen.getByLabelText("截止时间").closest(".datetime-picker");
+        expect(field).not.toBeNull();
+        field!.getBoundingClientRect = () => ({
+          ...fieldBox,
+          right: fieldBox.left + fieldBox.width,
+          bottom: fieldBox.top + fieldBox.height,
+          x: fieldBox.left,
+          y: fieldBox.top,
+          toJSON() { return {}; },
+        });
+        fireEvent.click(screen.getByLabelText("截止时间"));
+        const dialog = screen.getByRole("dialog", { name: "选择日期和时间" });
+        const placed = {
+          top: Number.parseFloat(dialog.style.top),
+          left: Number.parseFloat(dialog.style.left),
+          width: Number.parseFloat(dialog.style.width),
+          height: Number.parseFloat(dialog.style.height || dialog.style.maxHeight),
+        };
+        expect(placed.height).toBeGreaterThan(0);
+        expect(placed.top).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.top);
+        expect(placed.left).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.left);
+        expect(placed.left + placed.width).toBeLessThanOrEqual(width - DATE_POPOVER_INSET.right + 0.01);
+        expect(placed.top + placed.height).toBeLessThanOrEqual(height - DATE_POPOVER_INSET.bottom + 0.01);
         expect(boxesOverlap(placed, fieldBox)).toBe(false);
         unmount();
       }

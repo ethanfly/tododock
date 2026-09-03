@@ -147,4 +147,56 @@ describe("TodoItem", () => {
     expect(declared(handle!, "height")).toBe("22px");
     expect(declared(handle!, "place-items")).toBe("center");
   });
+
+  it("reserves an action gutter so hover actions do not cover the title", () => {
+    injectShippedCss();
+    render(
+      <TodoItem
+        todo={{ ...todo, title: "A very long task title that must not sit under the action cluster" }}
+        now={2}
+        onToggle={() => undefined}
+        onArchive={() => undefined}
+        onEdit={() => undefined}
+        onDelete={() => undefined}
+        reorderEnabled
+        isFirst={false}
+        isLast={false}
+        onMove={() => undefined}
+        onDrop={() => undefined}
+      />,
+    );
+
+    const card = document.querySelector(".todo-card");
+    const content = document.querySelector(".todo-content");
+    const title = document.querySelector(".todo-title-row strong");
+    const actions = document.querySelector(".todo-actions");
+    const check = document.querySelector(".check-button");
+    expect(card).not.toBeNull();
+    expect(content).not.toBeNull();
+    expect(title).not.toBeNull();
+    expect(actions).not.toBeNull();
+    expect(check).not.toBeNull();
+
+    const columns = declared(card!, "grid-template-columns");
+    expect(columns).toMatch(/minmax\(0,\s*1fr\)/);
+    expect(columns.trim().split(/\s+/).at(-1)).toBe("auto");
+    expect(["0", "0px"]).toContain(declared(content!, "min-width"));
+    expect(["0", "0px"]).toContain(declared(title!, "min-width"));
+    expect(declared(content!, "padding-right") === "0" || declared(content!, "padding-right") === "0px").toBe(true);
+    expect(declared(actions!, "position")).toBe("static");
+    expect(declared(actions!, "min-width")).toBe("max-content");
+    expect(declared(actions!, "grid-column")).toBe("4");
+    expect(declared(check!, "border-radius")).toBe("50%");
+
+    const buttons = [...actions!.querySelectorAll(".icon-button")];
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    const buttonWidth = Number.parseFloat(declared(buttons[0]!, "width"));
+    const gap = Number.parseFloat(declared(actions!, "gap"));
+    const cluster = buttonWidth * buttons.length + gap * (buttons.length - 1);
+    expect(cluster).toBeGreaterThan(0);
+    expect(buttonWidth).toBe(28);
+    expect(gap).toBe(2);
+    expect(document.querySelector(".todo-reorder-actions")).not.toBeNull();
+    expect(cssText).toMatch(/@media \(max-width:\s*400px\)[\s\S]*\.todo-reorder-actions/);
+  });
 });

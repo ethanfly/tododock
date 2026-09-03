@@ -192,6 +192,7 @@ export function SettingsDialog({
               <span>
                 <DateTimePicker
                   mode="time"
+                  compact
                   aria-label="静默开始时间"
                   value={settingsDraft.quietHoursStart}
                   onChange={(value) => onDraftChange({ ...settingsDraft, quietHoursStart: value || "22:00" })}
@@ -199,6 +200,7 @@ export function SettingsDialog({
                 <span>至</span>
                 <DateTimePicker
                   mode="time"
+                  compact
                   aria-label="静默结束时间"
                   value={settingsDraft.quietHoursEnd}
                   onChange={(value) => onDraftChange({ ...settingsDraft, quietHoursEnd: value || "08:00" })}

@@ -66,4 +66,34 @@ describe("placePopover", () => {
       expect(boxesOverlap(box, field)).toBe(false);
     }
   });
+
+  it.each([
+    { name: "420×640", viewport: { width: 420, height: 640 }, tops: [56, 280, 540] },
+    { name: "340×420", viewport: { width: 340, height: 420 }, tops: [56, 180, 330] },
+  ])("keeps datetime and link popovers inside a $name window from top, mid, and bottom fields", ({ viewport, tops }) => {
+    const popovers = [
+      { width: 280, height: 291 },
+      { width: 280, height: 196 },
+    ];
+    for (const popoverSize of popovers) {
+      for (const top of tops) {
+        const field = { top, left: 12, width: 220, height: 36 };
+        const placed = placePopover({
+          field,
+          viewport,
+          popover: popoverSize,
+          inset: DATE_POPOVER_INSET,
+        });
+        const box = { top: placed.top, left: placed.left, width: placed.width, height: placed.height };
+        expect(placed.height).toBeGreaterThan(0);
+        expect(placed.top).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.top);
+        expect(placed.left).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.left);
+        expect(placed.left + placed.width).toBeLessThanOrEqual(viewport.width - DATE_POPOVER_INSET.right + 0.01);
+        expect(placed.top + placed.height).toBeLessThanOrEqual(
+          viewport.height - DATE_POPOVER_INSET.bottom + 0.01,
+        );
+        expect(boxesOverlap(box, field)).toBe(false);
+      }
+    }
+  });
 });

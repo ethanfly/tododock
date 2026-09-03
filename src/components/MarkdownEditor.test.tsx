@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { DATE_POPOVER_INSET, boxesOverlap } from "../lib/popoverPlacement";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 afterEach(() => {
@@ -196,5 +197,49 @@ describe("MarkdownEditor", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "所见即所得" }));
     await waitFor(() => expect(template).not.toBeEmptyDOMElement());
+  });
+
+  it.each([
+    { name: "420×640", width: 420, height: 640, tops: [56, 280, 540] },
+    { name: "340×420", width: 340, height: 420, tops: [56, 180, 330] },
+  ])("places the link dialog inside a $name window without covering the trigger", ({ width, height, tops }) => {
+    const innerWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    const innerHeight = Object.getOwnPropertyDescriptor(window, "innerHeight");
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+
+    try {
+      for (const top of tops) {
+        const fieldBox = { top, left: 18, width: 28, height: 28 };
+        const { unmount } = render(<ControlledEditor initialValue="" />);
+        const trigger = screen.getByRole("button", { name: "链接" });
+        trigger.getBoundingClientRect = () => ({
+          ...fieldBox,
+          right: fieldBox.left + fieldBox.width,
+          bottom: fieldBox.top + fieldBox.height,
+          x: fieldBox.left,
+          y: fieldBox.top,
+          toJSON() { return {}; },
+        });
+        fireEvent.click(trigger);
+        const dialog = screen.getByRole("dialog", { name: "插入链接" });
+        const placed = {
+          top: Number.parseFloat(dialog.style.top),
+          left: Number.parseFloat(dialog.style.left),
+          width: Number.parseFloat(dialog.style.width),
+          height: Number.parseFloat(dialog.style.height || dialog.style.maxHeight),
+        };
+        expect(placed.height).toBeGreaterThan(0);
+        expect(placed.top).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.top);
+        expect(placed.left).toBeGreaterThanOrEqual(DATE_POPOVER_INSET.left);
+        expect(placed.left + placed.width).toBeLessThanOrEqual(width - DATE_POPOVER_INSET.right + 0.01);
+        expect(placed.top + placed.height).toBeLessThanOrEqual(height - DATE_POPOVER_INSET.bottom + 0.01);
+        expect(boxesOverlap(placed, fieldBox)).toBe(false);
+        unmount();
+      }
+    } finally {
+      if (innerWidth) Object.defineProperty(window, "innerWidth", innerWidth);
+      if (innerHeight) Object.defineProperty(window, "innerHeight", innerHeight);
+    }
   });
 });

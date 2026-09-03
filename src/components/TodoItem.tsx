@@ -116,10 +116,10 @@ export function TodoItem({
 
       <div className="todo-actions">
         {reorderEnabled && (
-          <>
+          <span className="todo-reorder-actions">
             <IconButton label={`上移 ${todo.title}`} disabled={isFirst} onClick={() => onMove(todo, -1)}><ArrowUp size={14} /></IconButton>
             <IconButton label={`下移 ${todo.title}`} disabled={isLast} onClick={() => onMove(todo, 1)}><ArrowDown size={14} /></IconButton>
-          </>
+          </span>
         )}
         <IconButton label={`编辑 ${todo.title}`} onClick={() => onEdit(todo)}><Pencil size={15} /></IconButton>
         <IconButton

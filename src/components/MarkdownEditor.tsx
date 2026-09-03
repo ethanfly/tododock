@@ -322,7 +322,7 @@ export function MarkdownEditor({ value, onChange, ariaLabel, compact = false }: 
     <div
       ref={linkPopoverRef}
       className="markdown-link-popover"
-      style={{ top: linkPopover.top, left: linkPopover.left, width: linkPopover.width, maxHeight: linkPopover.height }}
+      style={{ top: linkPopover.top, left: linkPopover.left, width: linkPopover.width, height: linkPopover.height, maxHeight: linkPopover.height }}
       role="dialog"
       aria-modal="true"
       aria-labelledby={linkTitleId}

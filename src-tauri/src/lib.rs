@@ -1,3 +1,4 @@
+mod autostart;
 mod data_files;
 mod db;
 mod llm;
@@ -21,7 +22,7 @@ use models::{
     ZentaoSyncResult,
 };
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartExt};
+use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut};
 use tauri_plugin_window_state::{AppHandleExt as WindowStateExt, StateFlags};
 
@@ -455,7 +456,10 @@ fn apply_runtime_settings(
     settings: &AppSettings,
     retry_shortcut: bool,
 ) -> Result<(), String> {
-    let autostart_changed = settings.launch_at_login != previous.launch_at_login;
+    let autostart_changed = match autostart::is_enabled(app) {
+        Ok(os_enabled) => os_enabled != settings.launch_at_login,
+        Err(_) => true,
+    } || settings.launch_at_login != previous.launch_at_login;
     let pin_changed = settings.always_on_top != previous.always_on_top;
     let dock_changed = settings.auto_hide != previous.auto_hide;
 
@@ -622,12 +626,7 @@ fn dispatch_global_shortcut(app: &tauri::AppHandle, pressed: &Shortcut) {
 }
 
 fn set_autostart(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
-    let result = if enabled {
-        app.autolaunch().enable()
-    } else {
-        app.autolaunch().disable()
-    };
-    result.map_err(|error| format!("无法更新开机启动状态：{error}"))
+    autostart::apply(app, enabled)
 }
 
 fn rollback_runtime_settings(
@@ -1045,6 +1044,9 @@ pub fn run() {
             });
             app.manage(windowing::WindowDockState::default());
             let settings = app.state::<AppState>().database.load_settings()?;
+            if let Err(error) = autostart::apply(app.handle(), settings.launch_at_login) {
+                log::error!("failed to apply saved autostart setting: {error}");
+            }
             app.state::<windowing::WindowDockState>()
                 .set_auto_hide(settings.auto_hide)?;
             if settings.global_shortcut_enabled {

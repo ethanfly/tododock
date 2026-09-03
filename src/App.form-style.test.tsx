@@ -186,6 +186,20 @@ describe("form field chrome", () => {
     expect(fieldShadow).toMatch(/0\s+0\s+0\s+2px/);
     expect(fieldShadow.includes("inset")).toBe(false);
 
+    const form = input.closest(".window-form");
+    const body = document.querySelector(".window-body.is-create-body");
+    expect(form).not.toBeNull();
+    expect(body).not.toBeNull();
+    expect(declared(form!, "overflow")).toBe("auto");
+    expect(declared(form!, "padding")).toBe("3px");
+    expect(declared(body!, "overflow")).toBe("hidden");
+    expect(declared(body!, "padding")).toBe("9px 13px");
+
+    fireEvent.click(screen.getByRole("button", { name: "展开 Markdown 备注" }));
+    expect(form).toHaveClass("is-markdown-open");
+    expect(declared(form!, "overflow")).toBe("hidden");
+    expect(declared(form!, "padding")).toBe("3px");
+
     cleanup();
     render(<SettingsApp />);
     const theme = await waitFor(() => screen.getByLabelText("主题"));

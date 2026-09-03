@@ -3,6 +3,7 @@ use tauri::AppHandle;
 #[cfg(not(windows))]
 use tauri_plugin_autostart::ManagerExt as AutostartExt;
 
+#[cfg(any(windows, test))]
 const BACKGROUND_ARG: &str = "--background";
 #[cfg(windows)]
 const WINDOWS_VALUE_NAMES: [&str; 2] = ["TodoDock", "tododock"];
@@ -70,6 +71,7 @@ fn disable(app: &AppHandle) -> Result<(), String> {
     }
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn sanitize_windows_exe_path(path: &str) -> String {
     if let Some(rest) = path.strip_prefix(r"\\?\UNC\") {
         return format!(r"\\{rest}");
@@ -79,6 +81,7 @@ pub(crate) fn sanitize_windows_exe_path(path: &str) -> String {
         .unwrap_or_else(|| path.to_string())
 }
 
+#[cfg(any(windows, test))]
 pub(crate) fn windows_run_command(exe_path: &str) -> String {
     format!(
         "\"{}\" {BACKGROUND_ARG}",

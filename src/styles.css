@@ -336,7 +336,7 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 .todo-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding-bottom: 19px; }
 .load-more-button { min-height: 38px; border: 1px dashed var(--line); border-radius: 8px; color: var(--ink-soft); background: var(--surface-muted); font-size: 14px; cursor: pointer; }
 .load-more-button:disabled { opacity: 0.55; cursor: wait; }
-.todo-card { position: relative; display: grid; grid-template-columns: 12px 22px minmax(0, 1fr); align-items: start; column-gap: 8px; row-gap: 6px; min-width: 0; padding: 10px 8px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.92); transition: border 140ms ease, box-shadow 140ms ease, background 140ms ease; }
+.todo-card { position: relative; display: grid; grid-template-columns: 12px 22px minmax(0, 1fr); align-items: start; column-gap: 8px; min-width: 0; padding: 10px 8px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.92); transition: border 140ms ease, box-shadow 140ms ease, background 140ms ease; }
 .todo-card:hover { border-color: rgba(101, 88, 232, 0.16); box-shadow: 0 4px 16px rgba(33, 35, 48, 0.05); }
 .todo-card.is-completed { opacity: 0.64; }
 .todo-card.is-completed strong { text-decoration: line-through; }
@@ -350,23 +350,25 @@ input[type="radio"]:disabled { opacity: 0.45; cursor: not-allowed; }
 .check-button[aria-pressed="true"] { border-color: var(--accent); color: white; background: var(--accent); }
 .check-button:focus-visible { outline: none; border-color: var(--accent); box-shadow: none; }
 
+.todo-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .todo-content { min-width: 0; padding: 0; border: 0; text-align: left; background: transparent; cursor: pointer; user-select: text; }
-.todo-title-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.todo-title-row strong { display: -webkit-box; min-width: 0; flex: 1; overflow: hidden; font-size: 16px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.todo-title-row { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.todo-title-row strong { display: -webkit-box; min-width: 0; flex: 1; overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .priority { flex: none; padding: 2px 5px; border-radius: 4px; font-size: 12px; font-weight: 800; }
 .priority-1 { color: #8b6920; background: #fff3c8; }
 .priority-2 { color: #a95628; background: #ffe5d4; }
 .priority-3 { color: #b53751; background: #ffe0e6; }
 
-.todo-body { display: -webkit-box; margin-top: 4px; overflow: hidden; color: var(--ink-soft); font-size: 14px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.todo-body { display: -webkit-box; margin-top: 2px; overflow: hidden; color: var(--ink-soft); font-size: 13px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .markdown-loading { color: var(--ink-faint); font-size: 13px; }
 .todo-body > :first-child, .todo-body p { margin-top: 0; }
 .todo-body > :last-child, .todo-body p { margin-bottom: 0; }
 .todo-body a, .markdown-preview a, .markdown-visual-surface a { color: var(--accent); }
-.deadline { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; color: var(--ink-faint); font-size: 12px; font-weight: 600; }
+.todo-meta { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 24px; }
+.deadline { display: inline-flex; align-items: center; gap: 4px; min-width: 0; flex: 1; overflow: hidden; color: var(--ink-faint); font-size: 12px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
 .deadline.is-overdue { color: var(--danger); }
-.todo-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; grid-column: 3; min-width: 0; }
-.todo-actions .icon-button { width: 26px; height: 26px; border-radius: 7px; color: var(--ink-faint); }
+.todo-actions { display: flex; align-items: center; flex: none; gap: 1px; margin-left: auto; }
+.todo-actions .icon-button { width: 24px; height: 24px; border-radius: 6px; color: var(--ink-faint); }
 .todo-actions .icon-button.is-danger:hover:not(:disabled) { color: var(--danger); background: rgba(215, 75, 98, 0.1); }
 
 .empty-state { display: flex; min-height: 170px; align-items: center; justify-content: center; flex-direction: column; padding: 25px; text-align: center; color: var(--ink-soft); }

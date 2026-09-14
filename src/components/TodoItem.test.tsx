@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // @ts-expect-error Vitest runs this file in Node and can read the shipped stylesheet.
@@ -16,6 +16,7 @@ import { TodoItem } from "./TodoItem";
 const cssText = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../styles.css"), "utf8");
 
 afterEach(() => {
+  cleanup();
   document.querySelector("style[data-tododock-styles]")?.remove();
 });
 
@@ -142,11 +143,16 @@ describe("TodoItem", () => {
     expect(declared(handle!, "place-items")).toBe("center");
   });
 
-  it("wraps actions below the title so the title can use the full content column", () => {
+  it("keeps the title in the content column and pairs actions with the deadline", () => {
     injectShippedCss();
     render(
       <TodoItem
-        todo={{ ...todo, title: "A very long task title that must not sit under the action cluster" }}
+        todo={{
+          ...todo,
+          title: "A very long task title that must not sit under the action cluster",
+          deadlineAt: 1_800_000,
+          reminderMinutes: 10,
+        }}
         now={2}
         onToggle={() => undefined}
         onArchive={() => undefined}
@@ -159,25 +165,34 @@ describe("TodoItem", () => {
     );
 
     const card = document.querySelector(".todo-card");
+    const main = document.querySelector(".todo-main");
     const content = document.querySelector(".todo-content");
     const title = document.querySelector(".todo-title-row strong");
+    const meta = document.querySelector(".todo-meta");
+    const deadline = document.querySelector(".deadline");
     const actions = document.querySelector(".todo-actions");
     const check = document.querySelector(".check-button");
     expect(card).not.toBeNull();
+    expect(main).not.toBeNull();
     expect(content).not.toBeNull();
     expect(title).not.toBeNull();
+    expect(meta).not.toBeNull();
+    expect(deadline).not.toBeNull();
     expect(actions).not.toBeNull();
     expect(check).not.toBeNull();
 
-    const columns = declared(card!, "grid-template-columns");
-    expect(columns).toBe("12px 22px minmax(0, 1fr)");
+    expect(declared(card!, "grid-template-columns")).toBe("12px 22px minmax(0, 1fr)");
+    expect(declared(main!, "display")).toBe("flex");
+    expect(declared(main!, "flex-direction")).toBe("column");
     expect(["0", "0px"]).toContain(declared(content!, "min-width"));
     expect(["0", "0px"]).toContain(declared(title!, "min-width"));
     expect(declared(title!, "white-space")).not.toBe("nowrap");
     expect(declared(title!, "-webkit-line-clamp")).toBe("2");
     expect(declared(content!, "padding-right") === "0" || declared(content!, "padding-right") === "0px").toBe(true);
-    expect(declared(actions!, "grid-column")).toBe("3");
-    expect(declared(actions!, "display")).toBe("flex");
+    expect(declared(meta!, "display")).toBe("flex");
+    expect(meta!.contains(deadline)).toBe(true);
+    expect(meta!.contains(actions)).toBe(true);
+    expect(declared(actions!, "margin-left")).toBe("auto");
     expect(declared(check!, "border-radius")).toBe("50%");
 
     const buttons = [...actions!.querySelectorAll(".icon-button")];
@@ -185,7 +200,7 @@ describe("TodoItem", () => {
     expect(screen.queryByRole("button", { name: "上移 Sortable task" })).toBeNull();
     expect(screen.queryByRole("button", { name: "下移 Sortable task" })).toBeNull();
     expect(document.querySelector(".todo-reorder-actions")).toBeNull();
-    expect(Number.parseFloat(declared(buttons[0]!, "width"))).toBe(26);
-    expect(Number.parseFloat(declared(actions!, "gap"))).toBe(4);
+    expect(Number.parseFloat(declared(buttons[0]!, "width"))).toBe(24);
+    expect(Number.parseFloat(declared(actions!, "gap"))).toBe(1);
   });
 });

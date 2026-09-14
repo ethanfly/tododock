@@ -93,30 +93,34 @@ export function TodoItem({
         {todo.status === "archived" && <ArchiveRestore size={13} />}
       </button>
 
-      <button type="button" className="todo-content" onClick={() => onEdit(todo)}>
-        <span className="todo-title-row">
-          {todo.priority > 0 && <span className={`priority priority-${todo.priority}`}>P{todo.priority}</span>}
-          <strong>{todo.title}</strong>
-        </span>
-        {todo.body && <div className="todo-body"><DeferredMarkdownBody markdown={todo.body} /></div>}
-        {deadline && (
-          <span className={`deadline ${overdue ? "is-overdue" : ""}`}>
-            <CalendarClock size={15} />
-            {deadline}
-            {todo.reminderMinutes !== null && <Bell size={13} aria-label="已设置提醒" />}
+      <div className="todo-main">
+        <button type="button" className="todo-content" onClick={() => onEdit(todo)}>
+          <span className="todo-title-row">
+            {todo.priority > 0 && <span className={`priority priority-${todo.priority}`}>P{todo.priority}</span>}
+            <strong>{todo.title}</strong>
           </span>
-        )}
-      </button>
+          {todo.body && <div className="todo-body"><DeferredMarkdownBody markdown={todo.body} /></div>}
+        </button>
 
-      <div className="todo-actions">
-        <IconButton label={`编辑 ${todo.title}`} onClick={() => onEdit(todo)}><Pencil size={14} /></IconButton>
-        <IconButton
-          label={todo.status === "archived" ? `恢复归档 ${todo.title}` : `归档 ${todo.title}`}
-          onClick={() => onArchive(todo, todo.status !== "archived")}
-        >
-          {todo.status === "archived" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-        </IconButton>
-        <IconButton className="is-danger" label={`删除 ${todo.title}`} onClick={() => onDelete(todo)}><Trash2 size={14} /></IconButton>
+        <div className="todo-meta">
+          {deadline && (
+            <span className={`deadline ${overdue ? "is-overdue" : ""}`}>
+              <CalendarClock size={13} />
+              {deadline}
+              {todo.reminderMinutes !== null && <Bell size={12} aria-label="已设置提醒" />}
+            </span>
+          )}
+          <div className="todo-actions">
+            <IconButton label={`编辑 ${todo.title}`} onClick={() => onEdit(todo)}><Pencil size={13} /></IconButton>
+            <IconButton
+              label={todo.status === "archived" ? `恢复归档 ${todo.title}` : `归档 ${todo.title}`}
+              onClick={() => onArchive(todo, todo.status !== "archived")}
+            >
+              {todo.status === "archived" ? <ArchiveRestore size={13} /> : <Archive size={13} />}
+            </IconButton>
+            <IconButton className="is-danger" label={`删除 ${todo.title}`} onClick={() => onDelete(todo)}><Trash2 size={13} /></IconButton>
+          </div>
+        </div>
       </div>
     </article>
   );

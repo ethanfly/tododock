@@ -527,7 +527,7 @@ function App() {
               <p>{search ? "换个关键词试试。" : "点击新建待办，或按下全局快捷键捕捉下一件事。"}</p>
             </div>
           ) : (
-            todos.map((todo, index) => (
+            todos.map((todo) => (
               <TodoItem
                 key={todo.id}
                 todo={todo}
@@ -537,8 +537,6 @@ function App() {
                 onEdit={openEdit}
                 onDelete={(item) => void removeTodo(item)}
                 reorderEnabled={filter === "open" && search === ""}
-                isFirst={index === 0}
-                isLast={index === todos.length - 1}
                 onMove={moveTodo}
                 onDrop={dropTodo}
               />

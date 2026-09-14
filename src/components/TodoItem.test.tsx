@@ -81,8 +81,6 @@ describe("TodoItem", () => {
         onEdit={() => undefined}
         onDelete={() => undefined}
         reorderEnabled
-        isFirst={false}
-        isLast={false}
         onMove={onMove}
         onDrop={() => undefined}
       />,
@@ -109,8 +107,6 @@ describe("TodoItem", () => {
         onEdit={() => undefined}
         onDelete={() => undefined}
         reorderEnabled={false}
-        isFirst
-        isLast
         onMove={() => undefined}
         onDrop={() => undefined}
       />,
@@ -119,7 +115,7 @@ describe("TodoItem", () => {
     expect(onArchive).toHaveBeenCalledWith(archived, false);
   });
 
-  it("vertically centers the drag handle with the checkbox", () => {
+  it("aligns the drag handle with the checkbox on the first content line", () => {
     injectShippedCss();
     render(
       <TodoItem
@@ -130,8 +126,6 @@ describe("TodoItem", () => {
         onEdit={() => undefined}
         onDelete={() => undefined}
         reorderEnabled
-        isFirst={false}
-        isLast={false}
         onMove={() => undefined}
         onDrop={() => undefined}
       />,
@@ -142,13 +136,13 @@ describe("TodoItem", () => {
     expect(card).not.toBeNull();
     expect(handle).not.toBeNull();
     expect(check).not.toBeNull();
-    expect(declared(card!, "align-items")).toBe("center");
+    expect(declared(card!, "align-items")).toBe("start");
     expect(declared(handle!, "height")).toBe(declared(check!, "height"));
     expect(declared(handle!, "height")).toBe("22px");
     expect(declared(handle!, "place-items")).toBe("center");
   });
 
-  it("reserves an action gutter so hover actions do not cover the title", () => {
+  it("wraps actions below the title so the title can use the full content column", () => {
     injectShippedCss();
     render(
       <TodoItem
@@ -159,8 +153,6 @@ describe("TodoItem", () => {
         onEdit={() => undefined}
         onDelete={() => undefined}
         reorderEnabled
-        isFirst={false}
-        isLast={false}
         onMove={() => undefined}
         onDrop={() => undefined}
       />,
@@ -178,25 +170,22 @@ describe("TodoItem", () => {
     expect(check).not.toBeNull();
 
     const columns = declared(card!, "grid-template-columns");
-    expect(columns).toMatch(/minmax\(0,\s*1fr\)/);
-    expect(columns.trim().split(/\s+/).at(-1)).toBe("auto");
+    expect(columns).toBe("12px 22px minmax(0, 1fr)");
     expect(["0", "0px"]).toContain(declared(content!, "min-width"));
     expect(["0", "0px"]).toContain(declared(title!, "min-width"));
+    expect(declared(title!, "white-space")).not.toBe("nowrap");
+    expect(declared(title!, "-webkit-line-clamp")).toBe("2");
     expect(declared(content!, "padding-right") === "0" || declared(content!, "padding-right") === "0px").toBe(true);
-    expect(declared(actions!, "position")).toBe("static");
-    expect(declared(actions!, "min-width")).toBe("max-content");
-    expect(declared(actions!, "grid-column")).toBe("4");
+    expect(declared(actions!, "grid-column")).toBe("3");
+    expect(declared(actions!, "display")).toBe("flex");
     expect(declared(check!, "border-radius")).toBe("50%");
 
     const buttons = [...actions!.querySelectorAll(".icon-button")];
-    expect(buttons.length).toBeGreaterThanOrEqual(3);
-    const buttonWidth = Number.parseFloat(declared(buttons[0]!, "width"));
-    const gap = Number.parseFloat(declared(actions!, "gap"));
-    const cluster = buttonWidth * buttons.length + gap * (buttons.length - 1);
-    expect(cluster).toBeGreaterThan(0);
-    expect(buttonWidth).toBe(28);
-    expect(gap).toBe(2);
-    expect(document.querySelector(".todo-reorder-actions")).not.toBeNull();
-    expect(cssText).toMatch(/@media \(max-width:\s*400px\)[\s\S]*\.todo-reorder-actions/);
+    expect(buttons).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: "上移 Sortable task" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "下移 Sortable task" })).toBeNull();
+    expect(document.querySelector(".todo-reorder-actions")).toBeNull();
+    expect(Number.parseFloat(declared(buttons[0]!, "width"))).toBe(26);
+    expect(Number.parseFloat(declared(actions!, "gap"))).toBe(4);
   });
 });

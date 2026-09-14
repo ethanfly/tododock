@@ -1,8 +1,6 @@
 import {
   Archive,
   ArchiveRestore,
-  ArrowDown,
-  ArrowUp,
   Bell,
   CalendarClock,
   Check,
@@ -25,8 +23,6 @@ interface TodoItemProps {
   onEdit: (todo: Todo) => void;
   onDelete: (todo: Todo) => void;
   reorderEnabled: boolean;
-  isFirst: boolean;
-  isLast: boolean;
   onMove: (todo: Todo, direction: -1 | 1) => void;
   onDrop: (draggedId: string, targetId: string) => void;
 }
@@ -39,8 +35,6 @@ export function TodoItem({
   onEdit,
   onDelete,
   reorderEnabled,
-  isFirst,
-  isLast,
   onMove,
   onDrop,
 }: TodoItemProps) {
@@ -115,20 +109,14 @@ export function TodoItem({
       </button>
 
       <div className="todo-actions">
-        {reorderEnabled && (
-          <span className="todo-reorder-actions">
-            <IconButton label={`上移 ${todo.title}`} disabled={isFirst} onClick={() => onMove(todo, -1)}><ArrowUp size={14} /></IconButton>
-            <IconButton label={`下移 ${todo.title}`} disabled={isLast} onClick={() => onMove(todo, 1)}><ArrowDown size={14} /></IconButton>
-          </span>
-        )}
-        <IconButton label={`编辑 ${todo.title}`} onClick={() => onEdit(todo)}><Pencil size={15} /></IconButton>
+        <IconButton label={`编辑 ${todo.title}`} onClick={() => onEdit(todo)}><Pencil size={14} /></IconButton>
         <IconButton
           label={todo.status === "archived" ? `恢复归档 ${todo.title}` : `归档 ${todo.title}`}
           onClick={() => onArchive(todo, todo.status !== "archived")}
         >
-          {todo.status === "archived" ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+          {todo.status === "archived" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
         </IconButton>
-        <IconButton label={`删除 ${todo.title}`} onClick={() => onDelete(todo)}><Trash2 size={15} /></IconButton>
+        <IconButton className="is-danger" label={`删除 ${todo.title}`} onClick={() => onDelete(todo)}><Trash2 size={14} /></IconButton>
       </div>
     </article>
   );
